@@ -1,3 +1,6 @@
+import { useNavigate } from 'react-router-dom'
+import { signInWithPopup } from 'firebase/auth'
+import { auth, googleProvider } from '../../firebase'
 import './Login.css'
 
 const GoogleIcon = () => (
@@ -16,6 +19,21 @@ const RestaurantIcon = () => (
 )
 
 export default function Login() {
+
+    const navigate = useNavigate()
+
+    const handleGoogleLogin = async () => {
+        try {
+            const result = await signInWithPopup(auth, googleProvider)
+            const user = result.user
+            console.log('Usuario autenticado:', user.displayName)
+            navigate('/inventario')
+        } catch (error) {
+            console.error('Error al iniciar sesión:', error.message)
+            alert('Error al iniciar sesión con Google. Intenta de nuevo.')
+        }
+    }
+
     return (
         <div className="login-wrapper">
             <div className="login-card">
@@ -30,9 +48,9 @@ export default function Login() {
                 <span>Continúa con</span>
                 </div>
 
-                <button className="google-btn">
-                <GoogleIcon />
-                Google
+                <button className="google-btn" onClick={handleGoogleLogin}>
+                    <GoogleIcon />
+                    Google
                 </button>
             </div>
         </div>
