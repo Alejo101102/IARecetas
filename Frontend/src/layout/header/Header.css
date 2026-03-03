@@ -1,0 +1,221 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+/* ── Variables ── */
+:root {
+  --green: #00d563;
+  --green-dark: #00a84d;
+  --green-glow: rgba(0, 213, 99, 0.18);
+  --text-primary: #111;
+  --text-muted: #888;
+  --border: #e8eaed;
+  --bg-header: rgba(255, 255, 255, 0.92);
+  --shadow-header: 0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.06);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+}
+
+/* ── Header Shell ── */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-header);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-header);
+    font-family: 'DM Sans', sans-serif;
+}
+
+.header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+/* ── Brand ── */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.header-brand-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--green);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 213, 99, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-brand:hover .header-brand-icon {
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0, 213, 99, 0.45);
+}
+
+.header-brand-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+}
+
+/* ── Nav ── */
+.header-nav {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.nav-link {
+    position: relative;
+    padding: 8px 16px;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+    background: rgba(0,0,0,0.04);
+}
+
+.nav-link.active {
+    color: var(--green-dark);
+    font-weight: 600;
+}
+
+/* Active underline */
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2.5px;
+    background: var(--green);
+    border-radius: 99px;
+}
+
+/* ── Actions (right side) ── */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* ── Settings Button ── */
+.settings-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: background 0.2s, color 0.2s, transform 0.3s ease;
+}
+
+.settings-btn:hover {
+    background: rgba(0,0,0,0.05);
+    color: var(--text-primary);
+}
+
+.settings-btn.open {
+    background: var(--green-glow);
+    color: var(--green-dark);
+    transform: rotate(45deg);
+}
+
+/* ── Settings Dropdown ── */
+.settings-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 220px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+    transform-origin: top right;
+    animation: dropdownIn 0.18s cubic-bezier(0.16,1,0.3,1) forwards;
+    z-index: 200;
+}
+
+@keyframes dropdownIn {
+    from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.settings-dropdown-header {
+    padding: 12px 16px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+}
+
+.settings-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 16px;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.settings-dropdown-item:hover {
+    background: #f5f7f9;
+}
+
+.settings-dropdown-item.danger {
+    color: #e03131;
+}
+
+.settings-dropdown-item.danger:hover {
+    background: #fff5f5;
+}
+
+.settings-dropdown-item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.settings-dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
