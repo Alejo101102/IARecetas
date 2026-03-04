@@ -1,0 +1,45 @@
+services:
+  # Servicio del Backend (Flask)
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: iarecetas-backend
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Monta el archivo de credenciales de Firebase
+      - ./Backend/iarecetas-4e7a5-firebase-adminsdk.json:/app/iarecetas-4e7a5-firebase-adminsdk.json:ro
+    restart: unless-stopped
+    networks:
+      - iarecetas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Servicio del Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: iarecetas-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - iarecetas-network
+    environment:
+      - VITE_API_URL=http://localhost:5001
+
+networks:
+  iarecetas-network:
+    driver: bridge

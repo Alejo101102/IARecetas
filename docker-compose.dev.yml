@@ -1,0 +1,48 @@
+# Docker Compose para desarrollo con hot-reload
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: iarecetas-backend-dev
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Montar código para hot-reload
+      - ./Backend:/app
+      - ./Backend/iarecetas-4e7a5-firebase-adminsdk.json:/app/iarecetas-4e7a5-firebase-adminsdk.json:ro
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+    restart: unless-stopped
+    networks:
+      - iarecetas-network
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.dev
+    container_name: iarecetas-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5001
+    volumes:
+      # Montar código para hot-reload
+      - ./Frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - iarecetas-network
+
+networks:
+  iarecetas-network:
+    driver: bridge

@@ -1,9 +1,11 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 from routes.inventory import inventory_bp
 from routes.history import history_bp
 from routes.favorites import favorites_bp
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/")
 def home():

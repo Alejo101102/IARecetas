@@ -1,0 +1,14 @@
+# Archivos de cobertura
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Cache de pytest
+.pytest_cache/
+.cache/
+
+# Entornos virtuales
+venv/
+env/
