@@ -31,4 +31,4 @@ class TestMainEndpoints:
         """Test que verifica que la documentación API está disponible"""
         response = client.get('/api/docs')
         assert response.status_code == 200
-        assert b'IARecetas Backend API' in response.data
+        assert b'IARecetas API Docs' in response.data
