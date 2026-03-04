@@ -9,6 +9,30 @@ function getProductos() {
   } catch { return [] }
 }
 
+// ─── Helpers para sincronizar favoritos con Biblioteca ────
+const BIB_KEY = 'iarecetas_biblioteca'
+
+function getBiblioteca() {
+  try {
+    const raw = sessionStorage.getItem(BIB_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+function isEnBiblioteca(id) {
+  return getBiblioteca().some(r => r.id === id)
+}
+
+function toggleBiblioteca(receta) {
+  const lista = getBiblioteca()
+  const existe = lista.find(r => r.id === receta.id)
+  const nueva = existe
+    ? lista.filter(r => r.id !== receta.id)
+    : [receta, ...lista]
+  try { sessionStorage.setItem(BIB_KEY, JSON.stringify(nueva)) } catch {}
+  return !existe // retorna si quedó guardado
+}
+
 // ─── Receta quemada de prueba ───────────────────────────────
 const RECETA_DEMO = {
   id: 'demo-1',
@@ -429,7 +453,7 @@ export default function Recetas() {
   const [recetaGenerada, setRecetaGenerada] = useState(null)
   const [generando, setGenerando] = useState(false)
   const [verCompleta, setVerCompleta] = useState(false)
-  const [guardada, setGuardada] = useState(false)
+  const [guardada, setGuardada] = useState(() => isEnBiblioteca(RECETA_DEMO.id))
 
   const toggleIngrediente = (id) => {
     setIngredientesSeleccionados(prev =>
@@ -447,7 +471,10 @@ export default function Recetas() {
   }
 
   const handleGuardar = () => {
-    setGuardada(prev => !prev)
+    if (recetaGenerada) {
+      const ahora = toggleBiblioteca(recetaGenerada)
+      setGuardada(ahora)
+    }
   }
 
   if (verCompleta && recetaGenerada) {
