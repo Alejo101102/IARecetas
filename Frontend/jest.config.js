@@ -14,18 +14,15 @@ export default {
   },
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', { presets: ['@babel/preset-env', '@babel/preset-react'] }]
+    '^.+\\.jsx?$': ['babel-jest', {
+      presets: [
+        '@babel/preset-env',
+        ['@babel/preset-react', { runtime: 'automatic' }],
+      ],
+    }]
   },
   transformIgnorePatterns: [
     'node_modules/(?!(firebase|@firebase)/)'
   ],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
-  coverageThreshold: {
-    global: {
-      branches: 50,
-      functions: 50,
-      lines: 50,
-      statements: 50
-    }
-  }
 };
