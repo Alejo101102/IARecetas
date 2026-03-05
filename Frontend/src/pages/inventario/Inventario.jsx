@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import "./Inventario.css";
 import {
   getProductos,
@@ -6,7 +6,7 @@ import {
   deleteProducto,
   updateProducto,
   diasParaVencer,
-} from "../store/inventarioStore";
+} from "../store/inventarioStore.js";
 
 // ─────────────────────────────────────────────────────────────
 //  CATEGORÍAS con emoji + color de fondo para el ícono
@@ -455,7 +455,16 @@ function ModalConfirmarEliminar({ producto, onClose, onConfirm }) {
 //  COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────
 export default function Inventario() {
-  const [productos, setProductos] = useState(() => getProductos());
+  const [productos, setProductos] = useState([]);
+
+  useEffect(() => {
+    async function cargarProductos() {
+      const data = await getProductos();
+      setProductos(data);
+    }
+
+    cargarProductos();
+  }, []);
   const [modalOpen, setModalOpen] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
   const [busqueda, setBusqueda] = useState("");
@@ -468,24 +477,22 @@ export default function Inventario() {
   //     .then(data => setProductos(data))
   // }, [])
 
-  const handleAdd = (producto) => {
-    // TODO (Backend): POST al API y luego refrescar lista
-    const updated = addProducto(producto);
+  const handleAdd = async (producto) => {
+    const updated = await addProducto(producto);
     setProductos(updated);
     setModalOpen(false);
   };
 
   const [productoAEliminar, setProductoAEliminar] = useState(null);
 
-  const handleDelete = (id) => {
-    const updated = deleteProducto(id);
+  const handleDelete = async (id) => {
+    const updated = await deleteProducto(id);
     setProductos(updated);
     setProductoAEliminar(null);
   };
 
-  const handleEdit = (productoActualizado) => {
-    // TODO (Backend): PUT al API
-    const updated = updateProducto(productoActualizado);
+  const handleEdit = async (productoActualizado) => {
+    const updated = await updateProducto(productoActualizado);
     setProductos(updated);
     setProductoEditando(null);
   };

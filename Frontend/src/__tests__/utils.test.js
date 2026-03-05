@@ -1,90 +1,113 @@
+import { describe, beforeEach, it, expect, jest } from '@jest/globals'
 import {
   getProductos,
   addProducto,
-  updateProducto,
   deleteProducto,
+  updateProducto,
   diasParaVencer,
 } from '../pages/store/inventarioStore'
-import { describe, beforeEach, it, expect, jest } from '@jest/globals'
+
+// ── Re-import the mocked Firestore functions ───────────────
+import { getDocs, addDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 
 describe('inventarioStore', () => {
-  const STORAGE_KEY = 'iarecetas_inventario'
 
   beforeEach(() => {
-    localStorage.clear()
-    Object.defineProperty(globalThis, 'crypto', {
-      value: { randomUUID: jest.fn(() => 'uuid-test-123') },
-      configurable: true,
-    })
+    jest.clearAllMocks()
   })
 
-  it('getProductos devuelve arreglo vacío cuando no hay datos', () => {
-    expect(getProductos()).toEqual([])
+  // ── getProductos ─────────────────────────────────────────
+
+  it('getProductos devuelve arreglo vacío cuando no hay datos', async () => {
+    getDocs.mockResolvedValueOnce({ docs: [] })
+
+    const result = await getProductos()
+    expect(result).toEqual([])
   })
 
-  it('addProducto guarda en localStorage y retorna lista actualizada', () => {
-    const result = addProducto({
-      nombre: 'Leche',
-      cantidad: 2,
-      unidad: 'L',
-      categoria: 'lacteos',
-      fechaVencimiento: null,
+  it('getProductos devuelve los productos del snapshot', async () => {
+    getDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'abc', data: () => ({ nombre: 'Leche', cantidad: 1, unidad: 'L' }) },
+        { id: 'def', data: () => ({ nombre: 'Arroz', cantidad: 500, unidad: 'g' }) },
+      ]
     })
 
+    const result = await getProductos()
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({ id: 'abc', nombre: 'Leche', cantidad: 1, unidad: 'L' })
+    expect(result[1]).toEqual({ id: 'def', nombre: 'Arroz', cantidad: 500, unidad: 'g' })
+  })
+
+  // ── addProducto ──────────────────────────────────────────
+
+  it('addProducto guarda en Firestore y retorna lista actualizada', async () => {
+    addDoc.mockResolvedValueOnce({ id: 'new-id' })
+    getDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'new-id', data: () => ({ nombre: 'Leche', cantidad: 1, unidad: 'L' }) },
+      ]
+    })
+
+    const result = await addProducto({ nombre: 'Leche', cantidad: 1, unidad: 'L' })
+
+    expect(addDoc).toHaveBeenCalledTimes(1)
     expect(result).toHaveLength(1)
     expect(result[0].nombre).toBe('Leche')
     expect(result[0].id).toBeTruthy()
-
-    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    expect(persisted).toHaveLength(1)
-    expect(persisted[0].nombre).toBe('Leche')
   })
 
-  it('updateProducto reemplaza el producto por id', () => {
-    const [created] = addProducto({
-      nombre: 'Harina',
-      cantidad: 1,
-      unidad: 'kg',
-      categoria: 'granos',
-      fechaVencimiento: null,
+  // ── updateProducto ───────────────────────────────────────
+
+  it('updateProducto reemplaza el producto por id', async () => {
+    updateDoc.mockResolvedValueOnce()
+    getDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'abc', data: () => ({ nombre: 'Leche entera', cantidad: 2, unidad: 'L' }) },
+      ]
     })
 
-    const updated = updateProducto({
-      ...created,
-      cantidad: 3,
-      nombre: 'Harina Integral',
-    })
+    const updated = { id: 'abc', nombre: 'Leche entera', cantidad: 2, unidad: 'L' }
+    const result = await updateProducto(updated)
 
-    expect(updated).toHaveLength(1)
-    expect(updated[0].nombre).toBe('Harina Integral')
-    expect(updated[0].cantidad).toBe(3)
+    expect(updateDoc).toHaveBeenCalledTimes(1)
+    expect(result[0].nombre).toBe('Leche entera')
+    expect(result[0].cantidad).toBe(2)
   })
 
-  it('deleteProducto elimina por id', () => {
-    const [created] = addProducto({
-      nombre: 'Azucar',
-      cantidad: 1,
-      unidad: 'kg',
-      categoria: 'granos',
-      fechaVencimiento: null,
-    })
+  // ── deleteProducto ───────────────────────────────────────
 
-    const updated = deleteProducto(created.id)
-    expect(updated).toEqual([])
-    expect(getProductos()).toEqual([])
+  it('deleteProducto elimina por id', async () => {
+    deleteDoc.mockResolvedValueOnce()
+    getDocs.mockResolvedValueOnce({ docs: [] })
+
+    const result = await deleteProducto('abc')
+
+    expect(deleteDoc).toHaveBeenCalledTimes(1)
+    expect(result).toEqual([])
   })
 
-  it('diasParaVencer devuelve null si no hay fecha', () => {
+  // ── diasParaVencer ───────────────────────────────────────
+
+  it('diasParaVencer retorna null si no hay fecha', () => {
     expect(diasParaVencer(null)).toBeNull()
+    expect(diasParaVencer(undefined)).toBeNull()
+    expect(diasParaVencer('')).toBeNull()
   })
 
-  it('diasParaVencer devuelve un número positivo para fecha futura', () => {
-    const future = new Date()
-    future.setDate(future.getDate() + 2)
-    const dias = diasParaVencer(future.toISOString().split('T')[0])
+  it('diasParaVencer retorna número negativo si ya venció', () => {
+    const pasado = '2000-01-01'
+    expect(diasParaVencer(pasado)).toBeLessThan(0)
+  })
 
-    expect(typeof dias).toBe('number')
-    expect(dias).toBeGreaterThanOrEqual(1)
-    expect(dias).toBeLessThanOrEqual(3)
+  it('diasParaVencer retorna número positivo para fecha futura', () => {
+    const futuro = '2099-12-31'
+    expect(diasParaVencer(futuro)).toBeGreaterThan(0)
+  })
+
+  it('diasParaVencer retorna 0 para hoy', () => {
+    const now = new Date()
+    const hoy = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    expect(diasParaVencer(hoy)).toBe(0)
   })
 })
