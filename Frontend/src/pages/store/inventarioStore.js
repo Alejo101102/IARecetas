@@ -1,63 +1,73 @@
 // ============================================================
-//  inventarioStore.js  –  Almacenamiento local del inventario
+//  inventarioStore.js  –  Almacenamiento en Firestore
 // ============================================================
-//
-//  TODO (Backend):
-//  Cuando conectes al backend, reemplaza las funciones de este
-//  archivo por llamadas a tu API. Ejemplo de endpoints:
-//
-//  const API_BASE = 'http://localhost:5000/api'   // ← tu URL
-//
-//  getProductos()        → GET    ${API_BASE}/inventario
-//  addProducto(data)     → POST   ${API_BASE}/inventario       body: data
-//  updateProducto(p)     → PUT    ${API_BASE}/inventario/${p.id}  body: p
-//  deleteProducto(id)    → DELETE ${API_BASE}/inventario/${id}
-//
-//  También puedes conectar Firestore:
-//  import { db } from '../firebase'
-//  import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore'
-//  const colRef = collection(db, 'inventario')
+// Integrado con Firebase Firestore para persistencia en la nube.
+// Requiere autenticación previa si las reglas de Firestore lo exigen.
 // ============================================================
 
-const STORAGE_KEY = 'iarecetas_inventario'
+import { db, auth } from '../../firebase.js'   // subir dos niveles
+import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore'
 
-/** Devuelve todos los productos guardados */
-export function getProductos() {
+
+function getInventarioRef() {
+  const user = auth.currentUser
+
+  if (!user) {
+    throw new Error("Usuario no autenticado")
+  }
+
+  return collection(db, "users", user.uid, "inventario")
+}
+
+/** Devuelve todos los productos desde Firestore */
+export async function getProductos() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
+    const snapshot = await getDocs(getInventarioRef())
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    console.error('Error obteniendo productos:', error)
     return []
   }
 }
 
-/** Guarda un nuevo producto y retorna la lista actualizada */
-export function addProducto(producto) {
-  const lista = getProductos()
-  const nuevo = {
-    ...producto,
-    id: crypto.randomUUID(),
-    creadoEn: new Date().toISOString(),
+/** Agrega un nuevo producto a Firestore y retorna la lista actualizada */
+export async function addProducto(producto) {
+  try {
+    const nuevo = {
+      ...producto,
+      creadoEn: new Date().toISOString(),
+    }
+    await addDoc(getInventarioRef(), nuevo)
+    return await getProductos()  // Retorna la lista actualizada
+  } catch (error) {
+    console.error('Error agregando producto:', error)
+    throw error
   }
-  const actualizada = [nuevo, ...lista]
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizada))
-  return actualizada
 }
 
-/** Elimina un producto por id y retorna la lista actualizada */
-export function deleteProducto(id) {
-  const actualizada = getProductos().filter(p => p.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizada))
-  return actualizada
+/** Elimina un producto por id en Firestore y retorna la lista actualizada */
+export async function deleteProducto(id) {
+  try {
+    await deleteDoc(doc(getInventarioRef(), id))
+    return await getProductos()
+  } catch (error) {
+    console.error('Error eliminando producto:', error)
+    throw error
+  }
 }
 
-/** Reemplaza un producto existente */
-export function updateProducto(productoActualizado) {
-  const actualizada = getProductos().map(p =>
-    p.id === productoActualizado.id ? productoActualizado : p
-  )
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizada))
-  return actualizada
+/** Actualiza un producto en Firestore y retorna la lista actualizada */
+export async function updateProducto(productoActualizado) {
+  try {
+    await updateDoc(
+      doc(getInventarioRef(), productoActualizado.id),
+      productoActualizado
+    )
+    return await getProductos()
+  } catch (error) {
+    console.error('Error actualizando producto:', error)
+    throw error
+  }
 }
 
 /** Retorna los días que faltan para que venza un producto.
