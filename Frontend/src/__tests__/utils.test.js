@@ -5,13 +5,14 @@ import {
   deleteProducto,
   diasParaVencer,
 } from '../pages/store/inventarioStore'
+import { describe, beforeEach, it, expect, jest } from '@jest/globals'
 
 describe('inventarioStore', () => {
   const STORAGE_KEY = 'iarecetas_inventario'
 
   beforeEach(() => {
     localStorage.clear()
-    Object.defineProperty(global, 'crypto', {
+    Object.defineProperty(globalThis, 'crypto', {
       value: { randomUUID: jest.fn(() => 'uuid-test-123') },
       configurable: true,
     })

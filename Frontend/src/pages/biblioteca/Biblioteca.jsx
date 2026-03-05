@@ -54,7 +54,9 @@ function getFavoritos() {
 function saveFavoritos(lista) {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(lista))
-  } catch {}
+  } catch {
+    // Ignora errores de almacenamiento (modo privado o storage bloqueado).
+  }
 }
 
 // ─── Vista completa de receta ─────────────────────────────

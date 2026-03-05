@@ -29,7 +29,11 @@ function toggleBiblioteca(receta) {
   const nueva = existe
     ? lista.filter(r => r.id !== receta.id)
     : [receta, ...lista]
-  try { sessionStorage.setItem(BIB_KEY, JSON.stringify(nueva)) } catch {}
+  try {
+    sessionStorage.setItem(BIB_KEY, JSON.stringify(nueva))
+  } catch {
+    // Ignora errores de almacenamiento (modo privado o storage bloqueado).
+  }
   return !existe // retorna si quedó guardado
 }
 
