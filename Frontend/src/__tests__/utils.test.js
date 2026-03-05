@@ -8,7 +8,7 @@ import {
 } from '../pages/store/inventarioStore'
 
 // ── Re-import the mocked Firestore functions ───────────────
-import { getDocs, addDoc, deleteDoc, updateDoc, collection, doc } from 'firebase/firestore'
+import { getDocs, addDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 
 describe('inventarioStore', () => {
 
@@ -106,7 +106,8 @@ describe('inventarioStore', () => {
   })
 
   it('diasParaVencer retorna 0 para hoy', () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const now = new Date()
+    const hoy = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     expect(diasParaVencer(hoy)).toBe(0)
   })
 })

@@ -1,11 +1,8 @@
 // ============================================================
 //  inventarioStore.js  –  Almacenamiento en Firestore
 // ============================================================
-// Integrado con Firebase Firestore para persistencia en la nube.
-// Requiere autenticación previa si las reglas de Firestore lo exigen.
-// ============================================================
 
-import { db, auth } from '../../firebase.js'   // subir dos niveles
+import { db, auth } from '../../firebase.js'
 import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore'
 
 
@@ -38,7 +35,7 @@ export async function addProducto(producto) {
       creadoEn: new Date().toISOString(),
     }
     await addDoc(getInventarioRef(), nuevo)
-    return await getProductos()  // Retorna la lista actualizada
+    return await getProductos()
   } catch (error) {
     console.error('Error agregando producto:', error)
     throw error
@@ -74,9 +71,13 @@ export async function updateProducto(productoActualizado) {
  *  Devuelve null si no tiene fecha. */
 export function diasParaVencer(fechaVencimiento) {
   if (!fechaVencimiento) return null
+
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
-  const vence = new Date(fechaVencimiento)
-  vence.setHours(0, 0, 0, 0)
+
+  // Parse YYYY-MM-DD as local time (not UTC) by splitting manually
+  const [anio, mes, dia] = fechaVencimiento.split('-').map(Number)
+  const vence = new Date(anio, mes - 1, dia)
+
   return Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
 }
