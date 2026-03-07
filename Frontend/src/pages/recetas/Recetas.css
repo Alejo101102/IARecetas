@@ -708,6 +708,23 @@
   border-radius: 99px;
 }
 
+/* Imagen */
+
+.rec-vc-img-wrap {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.rec-vc-img-wrap img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+
 /* Ingredientes */
 .rec-vc-ingredientes {
   background: var(--bg-card);
@@ -957,4 +974,80 @@
   .rec-vc-right {
     position: static;
   }
+}
+
+
+
+/* ── Estilos para imprimir ── */
+@media print {
+
+  
+
+  /* Ocultar navbar principal */
+  header,
+  nav,
+  .navbar,
+  .app-header {
+    display: none !important;
+  }
+
+  /* Quitar sticky */
+  .rec-vc-right {
+    position: static !important;
+    top: auto !important;
+    box-shadow: none !important;
+  }
+
+  /* Contenedor principal */
+  .rec-page,
+  .rec-container,
+  .rec-vista-completa {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Ocultar botones */
+  .rec-vc-btn-print,
+  .rec-vc-btn-guardar,
+  .rec-vc-btn-compartir,
+  .rec-volver {
+    display: none !important;
+  }
+
+  /* Layout vertical */
+  .rec-vc-grid {
+    display: block !important;
+  }
+
+  /* Secciones ancho completo */
+  .rec-vc-right,
+  .rec-vc-actions,
+  .rec-vc-stats-grid {
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Imagen */
+  .rec-vc-img-wrap {
+    width: 60% !important;
+    margin: 20px auto !important;
+    height: auto !important;
+  }
+
+  .rec-vc-img-wrap img {
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  img {
+    page-break-inside: avoid !important;
+  }
+
 }

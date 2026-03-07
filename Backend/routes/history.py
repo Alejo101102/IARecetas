@@ -17,5 +17,8 @@ def get_history():
     
     docs = db.collection('users').document(uid).collection('history').order_by("date", direction=firestore.Query.DESCENDING).stream()
     
-    history_list = [doc.to_dict() for doc in docs]
+    history_list = [
+    {"id": doc.id, **doc.to_dict()}
+    for doc in docs
+]
     return jsonify(history_list), 200

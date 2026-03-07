@@ -4,36 +4,6 @@ import { auth } from "../../firebase";
 import { getProductos as getProductosFromStore } from "../store/inventarioStore.js";
 import "./Recetas.css";
 
-// ─── Helpers para sincronizar favoritos con Biblioteca ────
-const BIB_KEY = "iarecetas_biblioteca";
-
-function getBiblioteca() {
-  try {
-    const raw = sessionStorage.getItem(BIB_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function isEnBiblioteca(id) {
-  return getBiblioteca().some((r) => r.id === id);
-}
-
-function toggleBiblioteca(receta) {
-  const lista = getBiblioteca();
-  const existe = lista.find((r) => r.id === receta.id);
-  const nueva = existe
-    ? lista.filter((r) => r.id !== receta.id)
-    : [receta, ...lista];
-  try {
-    sessionStorage.setItem(BIB_KEY, JSON.stringify(nueva));
-  } catch {
-    // Ignora errores de almacenamiento (modo privado o storage bloqueado).
-  }
-  return !existe; // retorna si quedó guardado
-}
-
 // ─── Receta quemada de prueba ───────────────────────────────
 const RECETA_DEMO = {
   id: "demo-1",
@@ -195,22 +165,6 @@ function PanelDespensa({
           </div>
         ))}
       </div>
-
-      <button className="rec-add-manual">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Añadir ingrediente manual
-      </button>
     </div>
   );
 }
@@ -447,6 +401,10 @@ function PanelReceta({ receta, onVerCompleta, guardada, onGuardar }) {
 function VistaCompleta({ receta, onVolver, guardada, onGuardar }) {
   const [ingredientesMarcados, setIngredientesMarcados] = useState([]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const toggleIngrediente = (idx) => {
     setIngredientesMarcados((prev) =>
       prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx],
@@ -544,6 +502,15 @@ function VistaCompleta({ receta, onVolver, guardada, onGuardar }) {
 
         {/* Columna derecha */}
         <div className="rec-vc-right">
+          <div className="rec-vc-img-wrap">
+            <img
+              src={
+                receta.imagen ||
+                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80"
+              }
+              alt={receta.nombre}
+            />
+          </div>
           {/* Stats cards */}
           <div className="rec-vc-stats-grid">
             {[
@@ -562,7 +529,7 @@ function VistaCompleta({ receta, onVolver, guardada, onGuardar }) {
 
           {/* Actions */}
           <div className="rec-vc-actions">
-            <button className="rec-vc-btn-print">
+            <button className="rec-vc-btn-print" onClick={() => window.print()}>
               <svg
                 width="16"
                 height="16"
@@ -641,10 +608,10 @@ export default function Recetas() {
   const [user, setUser] = useState(null);
   const [productos, setProductos] = useState([]);
   const [cargandoProductos, setCargandoProductos] = useState(true);
-
   const [ingredientesSeleccionados, setIngredientesSeleccionados] = useState(
     [],
   );
+
   const [objetivo, setObjetivo] = useState("Equilibrado");
   const [tiempo, setTiempo] = useState(30);
   const [bajoCal, setBajoCal] = useState(false);
@@ -652,9 +619,7 @@ export default function Recetas() {
   const [recetaGenerada, setRecetaGenerada] = useState(null);
   const [generando, setGenerando] = useState(false);
   const [verCompleta, setVerCompleta] = useState(false);
-  const [guardada, setGuardada] = useState(() =>
-    isEnBiblioteca(RECETA_DEMO.id),
-  );
+  const [guardada, setGuardada] = useState(false);
 
   // Cargar usuario autenticado
   useEffect(() => {
@@ -678,7 +643,7 @@ export default function Recetas() {
         setProductos(data);
         // Por defecto, selecciona los primeros 4 ingredientes
         if (data.length > 0) {
-          setIngredientesSeleccionados(data.slice(0, 4).map((p) => p.id));
+          setIngredientesSeleccionados(data.map((p) => p.id));
         }
       } catch (error) {
         console.error("Error cargando productos:", error);
@@ -751,7 +716,7 @@ export default function Recetas() {
 
       // Transformar la receta del backend al formato del frontend
       const recetaFormateada = {
-        id: data.receta_id || `receta-${Date.now()}`,
+        id: data.receta_id,
         nombre: receta.titulo,
         imagen:
           "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80", // imagen por defecto
@@ -780,7 +745,7 @@ export default function Recetas() {
       };
 
       setRecetaGenerada(recetaFormateada);
-      setGuardada(isEnBiblioteca(recetaFormateada.id));
+      setGuardada(false);
 
       console.log("Receta generada exitosamente:", recetaFormateada);
     } catch (error) {
@@ -798,37 +763,28 @@ export default function Recetas() {
     }
 
     try {
-      // Guardar en sessionStorage localmente
-      const resultado = toggleBiblioteca(recetaGenerada);
-      setGuardada(resultado);
+      const response = await fetch("http://localhost:5000/api/favorites/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          history_id: recetaGenerada.id,
+        }),
+      });
 
-      // Intentar guardar en Firebase si está disponible
-      try {
-        const response = await fetch(
-          "http://localhost:5000/api/recipes/biblioteca",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              uid: user.uid,
-              receta_id: recetaGenerada.id,
-              accion: resultado ? "add" : "remove",
-            }),
-          },
-        );
-
-        if (response.ok) {
-          console.log("Receta sincronizada con Firebase");
-        }
-      } catch {
-        // Si Firebase falla, al menos tenemos el guardado local
-        console.log("Guardado local completado (Firebase no disponible)");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Error al guardar favorito");
       }
+
+      setGuardada(true);
+
+      console.log("Receta guardada en favoritos");
     } catch (error) {
-      console.error("Error:", error);
-      alert("Error al guardar la receta");
+      console.error(error);
+      alert("Error guardando favorito: " + error.message);
     }
   };
 

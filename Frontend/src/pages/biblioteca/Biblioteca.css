@@ -105,6 +105,26 @@
   animation: cardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+/* Imagen de receta */
+.bib-card-img {
+  flex-shrink: 0;
+  padding-right: 16px;
+}
+
+.bib-card-img img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  transition: transform 2.25s ease;
 }
 
 @keyframes cardIn {
@@ -116,12 +136,14 @@
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
   border-color: #d1d5db;
+  transform: scale(3.05);
 }
 
 .bib-card-inner {
-  padding: 24px;
-  position: relative;
-}
+  padding: 20px 24px;
+    position: relative;
+    flex: 1;
+  }
 
 /* Tags */
 .bib-card-tags {
@@ -695,5 +717,88 @@
   }
   .bib-vc-right {
     position: static;
+  }
+}
+
+
+
+/* ── Estilos para imprimir ── */
+@media print {
+
+  
+
+  /* Ocultar navbar principal de la app */
+    header,
+    nav,
+    .navbar,
+    .app-header {
+      display: none !important;
+    }
+
+  /* Quitar sticky y posicionamiento especial */
+  .bib-vc-right,
+  .bib-historial-panel,
+  .bib-header {
+    position: static !important;
+    top: auto !important;
+    box-shadow: none !important;
+  }
+
+  /* Contenedor principal */
+  .bib-page,
+  .bib-container,
+  .bib-vista-completa {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Ocultar botones y elementos no deseados */
+  .bib-vc-btn-print,
+  .bib-vc-btn-guardar,
+  .bib-vc-btn-compartir,
+  .bib-volver,
+  .bib-card-heart {
+    display: none !important;
+  }
+
+  /* Layout lineal y simplificado */
+  .bib-vc-grid {
+    display: block !important;
+  }
+
+  /* Hacer que las tarjetas y secciones usen todo el ancho */
+  .bib-vc-right,
+  .bib-vc-actions,
+  .bib-cards-list,
+  .bib-vc-stats-grid {
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Imágenes completamente visibles */
+    /* Imagen mediana al imprimir */
+    .bib-vc-img-wrap {
+      width: 60% !important;
+      margin: 20px auto !important;
+      /* centrar */
+      height: auto !important;
+    }
+  
+    .bib-vc-img-wrap img {
+      width: 100% !important;
+      height: auto !important;
+      object-fit: contain !important;
+    }
+
+
+  /* Mejor legibilidad */
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  img {
+    page-break-inside: avoid !important;
   }
 }
