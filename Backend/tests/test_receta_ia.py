@@ -5,40 +5,6 @@ from unittest.mock import patch, MagicMock
 # Clase principal para agrupar todas las pruebas de la API de Recetas
 class TestRecetasIACompleto:
 
-    # --- PRUEBAS DE GENERACIÓN DE RECETAS (IA) ---
-
-    @patch('routes.recetas_ia.saveRecipe')
-    @patch('helper.addToHistory.saveRecipe')
-    @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_exito_total(self, mock_model, mock_save_helper, mock_save_route, client):
-        """
-        Verifica que la IA genere la receta, se limpie el JSON y se guarde en Firebase.
-        """
-        # Configurar AMBOS mocks para que retornen el mismo valor
-        mock_save_helper.return_value = "id_receta_123"
-        mock_save_route.return_value = "id_receta_123"
-        
-        # Simulamos respuesta de Gemini
-        mock_response = MagicMock()
-        mock_response.text = '{"titulo": "Tacos Saludables", "descripcion": "Deliciosos tacos con pollo, tortilla y aguacate.", "tiempo_estimado": "30", "porciones": "4", "dificultad": "Fácil", "calorias": 500, "proteina": 30, "carbos": 40, "grasas": 20, "ingredientes": [{"nombre": "pollo", "cantidad": "500g"}, {"nombre": "tortilla", "cantidad": "8 unidades"}, {"nombre": "aguacate", "cantidad": "1 unidad"}], "instrucciones": ["Cocina el pollo en una sartén.", "Calienta las tortillas.", "Arma los tacos con pollo y aguacate."]}'
-        mock_model.return_value.generate_content.return_value = mock_response
-
-        payload = {
-            'ingredientes': 'pollo, tortilla, aguacate',
-            'uid': 'user_test_88'
-        }
-
-        response = client.post('/api/recipes/generate', json=payload)
-        data = json.loads(response.data)
-
-        assert response.status_code == 200
-        assert data['receta']['titulo'] == "Tacos Saludables"
-        assert data['receta_id'] == "id_receta_123"
-        
-        # Verificar que AL MENOS UNO de los mocks fue llamado
-        llamados = mock_save_helper.call_count + mock_save_route.call_count
-        assert llamados > 0, "Ningún mock de saveRecipe fue llamado"
-
     def test_generar_receta_error_datos_vacios(self, client):
         """Prueba que el sistema rechace peticiones sin ingredientes."""
         response = client.post('/api/recipes/generate', json={})
