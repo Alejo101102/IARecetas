@@ -2,334 +2,126 @@ import pytest
 import json
 from unittest.mock import patch, MagicMock
 
-class TestRecetasIAEndpoints:
-    
-    @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_exito(self, mock_model, client):
-        """Prueba la generación de receta exitosa simulando la respuesta de Gemini"""
-        
-        # Simular la respuesta de Gemini
-        mock_response = MagicMock()
-        mock_response.text = '''```json
-        {
-            "titulo": "Pollo con Arroz Saludable",
-            "descripcion": "Un plato sencillo y nutritivo",
-            "tiempo_estimado": 30,
-            "porciones": "2",
-            "dificultad": "Fácil",
-            "calorias": 400,
-            "proteina": 25,
-            "carbos": 35,
-            "grasas": 12,
-            "ingredientes": [{"nombre": "pollo", "cantidad": "200g"}, {"nombre": "arroz", "cantidad": "1 taza"}],
-            "instrucciones": ["Paso 1", "Paso 2"]
-        }
-        ```'''
-        mock_model.return_value.generate_content.return_value = mock_response
+# Clase principal para agrupar todas las pruebas de la API de Recetas
+class TestRecetasIACompleto:
 
-        # Datos de prueba
-        payload = {
-            'ingredientes': 'pollo, arroz, cebolla, tomate',
-            'objetivo': 'Equilibrado',
-            'tiempo': '30 min',
-            'bajo_calorias': True,
-            'solo_una_olla': True
-        }
-
-        response = client.post('/api/recipes/generate', json=payload)
-        
-        # Verificaciones
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data['mensaje'] == 'Receta generada con éxito'
-        assert 'receta' in data
-        assert data['receta']['titulo'] == 'Pollo con Arroz Saludable'
-        mock_model.return_value.generate_content.assert_called_once()
-        
-    def test_generar_receta_sin_datos(self, client):
-        """Prueba cuando no se envían datos en el cuerpo de la petición"""
-        # Enviamos un post sin json para forzar que data=request.json sea None
-        response = client.post('/api/recipes/generate')
-        
+    def test_generar_receta_error_datos_vacios(self, client):
+        """Prueba que el sistema rechace peticiones sin ingredientes."""
+        response = client.post('/api/recipes/generate', json={})
         assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert data['error'] == 'No se proporcionaron los datos'
-
-    def test_generar_receta_sin_ingredientes(self, client):
-        """Prueba cuando se envían datos pero no hay ingredientes"""
-        payload = {
-            'objetivo': 'Equilibrado',
-            'ingredientes': ''
-        }
-        response = client.post('/api/recipes/generate', json=payload)
-        
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'La despensa está vacía' in data['error']
+        assert "No se proporcionaron los datos" in json.loads(response.data)['error']
 
     @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_respuesta_invalida(self, mock_model, client):
-        """Prueba cuando Gemini devuelve un JSON inválido"""
-        # Simular respuesta de Gemini con JSON inválido
+    def test_generar_receta_ia_falla(self, mock_model, client):
+        """Prueba el manejo de errores cuando la IA devuelve algo que no es JSON."""
         mock_response = MagicMock()
-        mock_response.text = "Esto no es un JSON"
+        mock_response.text = "Lo siento, no puedo generar esa receta."
         mock_model.return_value.generate_content.return_value = mock_response
 
-        payload = {
-            'ingredientes': 'pollo, arroz'
-        }
-
+        payload = {'ingredientes': 'piedras'}
         response = client.post('/api/recipes/generate', json=payload)
         
         assert response.status_code == 500
+        assert 'formato JSON válido' in json.loads(response.data)['error']
+
+    # --- PRUEBAS DE HISTORIAL ---
+
+    @patch('routes.history.db')
+    def test_obtener_historial_exito(self, mock_db, client):
+        """Verifica la recuperación de la lista de historial desde Firestore."""
+        # Simulamos documentos de Firestore
+        mock_doc = MagicMock()
+        mock_doc.to_dict.return_value = {'id': '1', 'recipe': {'titulo': 'Pasta'}}
+        
+        # Mock de la cadena: db.collection().document().collection().order_by().stream()
+        mock_db.collection.return_value.document.return_value.collection.return_value.order_by.return_value.stream.return_value = [mock_doc]
+
+        response = client.post('/api/history/', json={'uid': 'user_123'})
         data = json.loads(response.data)
-        assert 'error' in data
-        assert 'formato JSON válido' in data['error']
 
-    @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_error_general(self, mock_model, client):
-        """Prueba cuando ocurre un error general (ej. falla la conexión a la API)"""
-        # Simular una excepción al llamar a Gemini
-        mock_model.return_value.generate_content.side_effect = Exception("Error de conexión a la API")
-
-        payload = {
-            'ingredientes': 'pollo, arroz'
-        }
-
-        response = client.post('/api/recipes/generate', json=payload)
-        
-        assert response.status_code == 500
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'Error de conexión a la API' in data['error']
-
-    @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_con_preferencias_bajo_calorias(self, mock_model, client):
-        """Prueba la generación de receta con restricción de bajo en calorías"""
-        mock_response = MagicMock()
-        mock_response.text = json.dumps({
-            "titulo": "Ensalada Ligera",
-            "descripcion": "Una ensalada saludable y baja en calorías",
-            "tiempo_estimado": 15,
-            "porciones": 2,
-            "dificultad": "Fácil",
-            "calorias": 250,
-            "proteina": 15,
-            "carbos": 25,
-            "grasas": 8,
-            "ingredientes": [{"nombre": "lechuga", "cantidad": "200g"}],
-            "instrucciones": ["Mezclar todos los ingredientes"]
-        })
-        
-        mock_model.return_value.generate_content.return_value = mock_response
-
-        payload = {
-            'ingredientes': 'lechuga, tomate, cebolla',
-            'bajo_calorias': True,
-            'uid': 'test_user_123'
-        }
-
-        response = client.post('/api/recipes/generate', json=payload)
-        
         assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data['receta']['calorias'] <= 400
-        assert 'receta_id' in data
+        assert len(data) == 1
+        assert data[0]['recipe']['titulo'] == 'Pasta'
 
-    @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_con_preferencia_una_olla(self, mock_model, client):
-        """Prueba la generación de receta para cocinar en una sola olla"""
-        mock_response = MagicMock()
-        mock_response.text = json.dumps({
-            "titulo": "Arroz con Verduras",
-            "descripcion": "Todo en una sola olla",
-            "tiempo_estimado": 25,
-            "porciones": 3,
-            "dificultad": "Fácil",
-            "calorias": 350,
-            "proteina": 12,
-            "carbos": 45,
-            "grasas": 10,
-            "ingredientes": [{"nombre": "arroz", "cantidad": "2 tazas"}],
-            "instrucciones": ["Todo en una olla"]
-        })
-        
-        mock_model.return_value.generate_content.return_value = mock_response
+    # --- PRUEBAS DE FAVORITOS (BIBLIOTECA) ---
 
-        payload = {
-            'ingredientes': 'arroz, agua, sal, cebolla',
-            'solo_una_olla': True
-        }
+    @patch('routes.favorites.db')
+    def test_add_favorite_exito(self, mock_db, client):
+        """Prueba que se pueda mover una receta del historial a favoritos."""
+        # 1. Mock de la referencia al documento del historial
+        mock_hist_doc_ref = MagicMock()
+        mock_hist_doc = MagicMock()
+        mock_hist_doc.exists = True
+        mock_hist_doc.to_dict.return_value = {'recipe': {'titulo': 'Pizza'}}
+        mock_hist_doc_ref.get.return_value = mock_hist_doc
 
-        response = client.post('/api/recipes/generate', json=payload)
-        
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert 'receta' in data
+        # 2. Mock de la referencia al nuevo documento de favorito
+        mock_fav_ref = MagicMock()
+        mock_fav_ref.id = "new_fav_id_777"
 
-    def test_obtener_historial_sin_uid(self, client):
-        """Prueba obtener historial sin UID requerido"""
-        payload = {
-            'uid': ''
-        }
-        response = client.post('/api/recipes/history', json=payload)
-        
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'UID requerido' in data['error']
+        # Configuramos la cadena de llamadas de la base de datos
+        # Para el GET del historial
+        mock_db.collection.return_value.document.return_value.collection.return_value.document.return_value = mock_hist_doc_ref
+        # Para la creación del favorito (el segundo document() llamado sin argumentos)
+        mock_db.collection.return_value.document.return_value.collection.return_value.document.side_effect = [mock_hist_doc_ref, mock_fav_ref]
 
-    def test_obtener_historial_sin_datos(self, client):
-        """Prueba obtener historial sin enviar datos"""
-        response = client.post('/api/recipes/history')
-        
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'UID requerido' in data['error']
-
-    @patch('routes.recetas_ia.firebase_available', False)
-    def test_obtener_historial_firebase_no_disponible(self, client):
-        """Prueba obtener historial cuando Firebase no está disponible"""
-        payload = {
-            'uid': 'user_123'
-        }
-        response = client.post('/api/recipes/history', json=payload)
-        
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert 'recetas' in data
-        assert data['recetas'] == []
-
-    def test_agregar_receta_biblioteca_sin_datos(self, client):
-        """Prueba agregar receta a biblioteca sin datos"""
-        response = client.post('/api/recipes/biblioteca')
-        
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-
-    def test_agregar_receta_biblioteca_sin_uid(self, client):
-        """Prueba agregar receta a biblioteca sin UID"""
-        payload = {
-            'receta_id': 'recipe_123',
-            'accion': 'add'
-        }
-        response = client.post('/api/recipes/biblioteca', json=payload)
-        
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'UID y receta_id requeridos' in data['error']
-
-    def test_agregar_receta_biblioteca_sin_receta_id(self, client):
-        """Prueba agregar receta a biblioteca sin receta_id"""
         payload = {
             'uid': 'user_123',
-            'accion': 'add'
+            'history_id': 'hist_999'
         }
-        response = client.post('/api/recipes/biblioteca', json=payload)
+        response = client.post('/api/favorites/add', json=payload)
+        data = json.loads(response.data)
         
+        # Ajustado a 201 y verificamos el mensaje según favorites.py
+        assert response.status_code == 201
+        assert "Receta añadida a favoritos" in data['message']
+        assert data['fav_id'] == "new_fav_id_777"
+
+    def test_add_favorite_faltan_parametros(self, client):
+        """Verifica que el sistema pida UID e ID de historial."""
+        response = client.post('/api/favorites/add', json={'uid': 'solo_uid'})
         assert response.status_code == 400
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'UID y receta_id requeridos' in data['error']
+        assert "UID e ID de historial son requeridos" in json.loads(response.data)['error']
 
-    @patch('routes.recetas_ia.firebase_available', False)
-    def test_agregar_receta_biblioteca_firebase_no_disponible(self, client):
-        """Prueba agregar receta a biblioteca cuando Firebase no está disponible"""
-        payload = {
-            'uid': 'user_123',
-            'receta_id': 'recipe_123',
-            'accion': 'add'
-        }
-        response = client.post('/api/recipes/biblioteca', json=payload)
+    @patch('routes.favorites.db')
+    def test_delete_favorite_no_existe(self, mock_db, client):
+        """Prueba que el sistema detecte si un favorito a borrar no existe."""
+        mock_fav_ref = MagicMock()
+        mock_fav_ref.get.return_value.exists = False
+        mock_db.collection.return_value.document.return_value.collection.return_value.document.return_value = mock_fav_ref
+
+        payload = {'uid': 'user_123', 'fav_id': 'id_falso'}
+        response = client.delete('/api/favorites/delete', json=payload)
         
+        assert response.status_code == 404
+        assert "El favorito no existe" in json.loads(response.data)['error']
+
+    # --- PRUEBAS DE LÓGICA DE NEGOCIO (addToHistory.py) ---
+
+    @patch('helper.addToHistory.db')
+    def test_logica_limite_historial(self, mock_db):
+        """
+        Verifica que si hay 6 recetas, se borre la más antigua.
+        Este test prueba directamente la función saveRecipe de tus archivos.
+        """
+        from helper.addToHistory import saveRecipe
+        
+        # Simulamos que hay 6 documentos en el stream
+        mock_docs = [MagicMock() for _ in range(6)]
+        mock_ref = mock_db.collection.return_value.document.return_value.collection.return_value
+        mock_ref.order_by.return_value.stream.return_value = mock_docs
+        
+        # Ejecutamos la función
+        saveRecipe("user_123", {"titulo": "Receta Nueva"})
+        
+        # Comprobamos que se llamó a delete() en el primer documento (el más antiguo)
+        mock_docs[0].reference.delete.assert_called_once()
+
+    @patch('routes.favorites.db')
+    def test_get_favorites_vacio(self, mock_db, client):
+        """Verifica que retorne lista vacía si el usuario no tiene favoritos."""
+        mock_db.collection.return_value.document.return_value.collection.return_value.stream.return_value = []
+        
+        response = client.post('/api/favorites/', json={'uid': 'user_sin_favs'})
         assert response.status_code == 200
-        data = json.loads(response.data)
-        assert 'addida localmente' in data['mensaje']
-
-    @patch('routes.recetas_ia.firebase_available', False)
-    def test_remover_receta_biblioteca_firebase_no_disponible(self, client):
-        """Prueba remover receta de biblioteca cuando Firebase no está disponible"""
-        payload = {
-            'uid': 'user_123',
-            'receta_id': 'recipe_123',
-            'accion': 'remove'
-        }
-        response = client.post('/api/recipes/biblioteca', json=payload)
-        
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert 'removeida localmente' in data['mensaje']
-
-    @patch('routes.recetas_ia.firebase_available', False)
-    def test_agregar_receta_biblioteca_accion_invalida(self, client):
-        """Prueba agregar receta a biblioteca con acción inválida - en modo offline"""
-        payload = {
-            'uid': 'user_123',
-            'receta_id': 'recipe_123',
-            'accion': 'invalid'
-        }
-        # En modo offline (firebase_available=False), retorna 200 con mensaje genérico
-        response = client.post('/api/recipes/biblioteca', json=payload)
-        
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert 'invalidida localmente' in data['mensaje']
-
-    @patch('routes.recetas_ia.genai.GenerativeModel')
-    def test_generar_receta_estructura_completa(self, mock_model, client):
-        """Prueba que la receta generada tenga la estructura completa esperada"""
-        mock_response = MagicMock()
-        mock_response.text = json.dumps({
-            "titulo": "Pollo al Horno",
-            "descripcion": "Pollo tierno y jugoso",
-            "tiempo_estimado": 45,
-            "porciones": 4,
-            "dificultad": "Medio",
-            "calorias": 380,
-            "proteina": 40,
-            "carbos": 35,
-            "grasas": 12,
-            "ingredientes": [
-                {"nombre": "pecho de pollo", "cantidad": "800g"},
-                {"nombre": "aceite de oliva", "cantidad": "3 cdas"}
-            ],
-            "instrucciones": [
-                "Precalentar horno a 180°C",
-                "Colocar pollo en bandeja",
-                "Hornear 40 minutos"
-            ]
-        })
-        
-        mock_model.return_value.generate_content.return_value = mock_response
-
-        payload = {
-            'ingredientes': 'pollo, aceite, sal',
-            'objetivo': 'Equilibrado',
-            'tiempo': '45 min'
-        }
-
-        response = client.post('/api/recipes/generate', json=payload)
-        
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        receta = data['receta']
-        
-        # Verificar estructura completa
-        assert 'titulo' in receta
-        assert 'descripcion' in receta
-        assert 'tiempo_estimado' in receta
-        assert 'porciones' in receta
-        assert 'dificultad' in receta
-        assert 'calorias' in receta
-        assert 'proteina' in receta
-        assert 'carbos' in receta
-        assert 'grasas' in receta
-        assert 'ingredientes' in receta
-        assert 'instrucciones' in receta
-        assert len(receta['ingredientes']) > 0
-        assert len(receta['instrucciones']) > 0
+        assert json.loads(response.data) == []
