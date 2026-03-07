@@ -12,6 +12,9 @@ Requiere un request body con el UID del usuario para obtener el historial asocia
 def get_history():
     data = request.json
     uid = data.get('uid')
+    if not uid:
+        return jsonify({"error": "UID requerido"}), 400
+    
     docs = db.collection('users').document(uid).collection('history').order_by("date", direction=firestore.Query.DESCENDING).stream()
     
     history_list = [doc.to_dict() for doc in docs]

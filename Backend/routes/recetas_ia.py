@@ -22,6 +22,7 @@ recetas_ia_bp = Blueprint('recetas_ia', __name__)
 # Ruta para generar receta con Gemini
 @recetas_ia_bp.route('/recipes/generate', methods=['POST'])
 def generar_receta():
+    idGenerado = None
     try:
         # Extraemos los datos del JSON enviado desde el Frontend
         data = request.get_json(silent=True)
@@ -107,7 +108,7 @@ def generar_receta():
         
         if firebase_available and uid:
             idGenerado = saveRecipe(uid, receta_json)  # Guardamos en el historial del usuario, devuelve id de la receta guardada
-        
+
         # Respondemos el texto generado por la IA
         return jsonify({
             'mensaje': 'Receta generada con éxito',
