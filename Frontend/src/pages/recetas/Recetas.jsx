@@ -4,7 +4,7 @@ import { auth } from "../../firebase";
 import { getProductos as getProductosFromStore } from "../store/inventarioStore.js";
 import "./Recetas.css";
 
-const API_BASE = globalThis.__VITE_API_URL__ || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ─── Receta quemada de prueba ───────────────────────────────
 const RECETA_DEMO = {
