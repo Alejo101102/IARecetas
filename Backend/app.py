@@ -3,6 +3,7 @@ from flask_cors import CORS
 from routes.inventory import inventory_bp
 from routes.history import history_bp
 from routes.favorites import favorites_bp
+from routes.recetas_ia import recetas_ia_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -277,6 +278,7 @@ def swagger_ui():
 app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
 app.register_blueprint(history_bp, url_prefix='/api/history')
 app.register_blueprint(favorites_bp, url_prefix='/api/favorites')
+app.register_blueprint(recetas_ia_bp, url_prefix='/api')
 
 if __name__ == "__main__":
     app.run(debug=True)

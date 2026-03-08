@@ -1,15 +1,24 @@
 from flask import Blueprint, request, jsonify
 from initFirebase import db
+from google.cloud import firestore
 
 history_bp = Blueprint('history', __name__)
 
-# definir una logica para limitar a 5 recetas en el historial
-def solo5():
-    return "Solo 5 recetas en el historial, no se pueden agregar más"
-
+"""Ruta para obtener el historial de recetas generadas por un usuario.
+Ruta: Post /api/history/
+Requiere un request body con el UID del usuario para obtener el historial asociado a ese UID
+"""
 @history_bp.route('/', methods=['POST'])
 def get_history():
     data = request.json
     uid = data.get('uid')
-    # la logica de historial va aqui, pero por ahora solo devuelve un mensaje
-    return jsonify({"msg": "EL HISTORIAL MANITO"}), 201
+    if not uid:
+        return jsonify({"error": "UID requerido"}), 400
+    
+    docs = db.collection('users').document(uid).collection('history').order_by("date", direction=firestore.Query.DESCENDING).stream()
+    
+    history_list = [
+    {"id": doc.id, **doc.to_dict()}
+    for doc in docs
+]
+    return jsonify(history_list), 200

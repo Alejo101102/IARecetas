@@ -1,6 +1,6 @@
 # Script para ejecutar tests localmente
 param(
-    [Parameter(Position=0)]
+    [Parameter(Position = 0)]
     [string]$Target = "all"
 )
 
@@ -11,7 +11,7 @@ function Show-Header {
     Write-Host "========================================`n" -ForegroundColor Cyan
 }
 
-function Test-Backend {
+function Invoke-BackendTests {
     Show-Header "BACKEND TESTS (pytest)"
     
     Push-Location Backend
@@ -23,7 +23,8 @@ function Test-Backend {
     if ($exitCode -eq 0) {
         Write-Host "`n✅ Tests del backend PASSED" -ForegroundColor Green
         Write-Host "📊 Coverage report: Backend/htmlcov/index.html" -ForegroundColor Cyan
-    } else {
+    }
+    else {
         Write-Host "`n❌ Tests del backend FAILED" -ForegroundColor Red
     }
     
@@ -31,7 +32,7 @@ function Test-Backend {
     return $exitCode
 }
 
-function Test-Frontend {
+function Invoke-FrontendTests {
     Show-Header "FRONTEND TESTS (Jest)"
     
     Push-Location Frontend
@@ -43,7 +44,8 @@ function Test-Frontend {
     if ($exitCode -eq 0) {
         Write-Host "`n✅ Tests del frontend PASSED" -ForegroundColor Green
         Write-Host "📊 Coverage report: Frontend/coverage/lcov-report/index.html" -ForegroundColor Cyan
-    } else {
+    }
+    else {
         Write-Host "`n❌ Tests del frontend FAILED" -ForegroundColor Red
     }
     
@@ -51,28 +53,31 @@ function Test-Frontend {
     return $exitCode
 }
 
-function Test-All {
-    $backendResult = Test-Backend
-    $frontendResult = Test-Frontend
+function Invoke-AllTests {
+    $backendResult = Invoke-BackendTests
+    $frontendResult = Invoke-FrontendTests
     
     Show-Header "RESUMEN"
     
     if ($backendResult -eq 0) {
         Write-Host "Backend:  ✅ PASSED" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "Backend:  ❌ FAILED" -ForegroundColor Red
     }
     
     if ($frontendResult -eq 0) {
         Write-Host "Frontend: ✅ PASSED" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "Frontend: ❌ FAILED" -ForegroundColor Red
     }
     
     if ($backendResult -eq 0 -and $frontendResult -eq 0) {
         Write-Host "`n🎉 Todos los tests pasaron!" -ForegroundColor Green
         return 0
-    } else {
+    }
+    else {
         Write-Host "`n⚠️  Algunos tests fallaron" -ForegroundColor Yellow
         return 1
     }
@@ -81,13 +86,13 @@ function Test-All {
 # Main
 switch ($Target.ToLower()) {
     "backend" { 
-        exit (Test-Backend)
+        exit (Invoke-BackendTests)
     }
     "frontend" { 
-        exit (Test-Frontend)
+        exit (Invoke-FrontendTests)
     }
     "all" { 
-        exit (Test-All)
+        exit (Invoke-AllTests)
     }
     default {
         Write-Host "Uso: .\test.ps1 [backend|frontend|all]" -ForegroundColor Yellow

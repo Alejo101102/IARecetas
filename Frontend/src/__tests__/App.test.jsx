@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from '@jest/globals';
+import React from 'react';
+import { render } from '@testing-library/react';
+import { describe, it, expect, jest } from '@jest/globals';
 import App from '../App';
 
 // Mock de react-router-dom

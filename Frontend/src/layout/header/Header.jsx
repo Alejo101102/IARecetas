@@ -46,7 +46,7 @@ const BrandIcon = () => (
         { to: '/biblioteca', label: 'Mi Biblioteca' },
     ]
 
-    export default function Header({ user }) {
+    export default function Header() {
         const [settingsOpen, setSettingsOpen] = useState(false)
         const dropdownRef = useRef(null)
         const navigate = useNavigate()
