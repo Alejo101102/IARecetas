@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals'
 
+globalThis.__VITE_API_URL__ = 'http://localhost:5000'
+
 // Mock de Firebase
 jest.mock('./firebase', () => ({
   auth: { currentUser: { uid: 'test_user_123' } },

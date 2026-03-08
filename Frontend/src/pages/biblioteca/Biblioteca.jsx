@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import "./Biblioteca.css";
 
+const API_BASE = globalThis.__VITE_API_URL__ || "http://localhost:5000";
+
 // ─── Vista completa de receta ─────────────────────────────
 function VistaCompleta({ receta, onVolver, esFavorito, onToggleFavorito }) {
   const [ingredientesMarcados, setIngredientesMarcados] = useState([]);
@@ -337,7 +339,7 @@ export default function Biblioteca() {
     try {
       const uid = sessionStorage.getItem("uid");
 
-      const res = await fetch("http://localhost:5000/api/history/", {
+      const res = await fetch(`${API_BASE}/api/history/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -392,7 +394,7 @@ export default function Biblioteca() {
       const uid = sessionStorage.getItem("uid");
       console.log("UID encontrado:", uid);
 
-      const res = await fetch("http://localhost:5000/api/favorites/", {
+      const res = await fetch(`${API_BASE}/api/favorites/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -440,7 +442,7 @@ export default function Biblioteca() {
     if (esFavorito(receta.id)) {
       const fav = favoritos.find((f) => f.id === receta.id);
 
-      await fetch("http://localhost:5000/api/favorites/delete", {
+      await fetch(`${API_BASE}/api/favorites/delete`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -451,7 +453,7 @@ export default function Biblioteca() {
         }),
       });
     } else {
-      await fetch("http://localhost:5000/api/favorites/add", {
+      await fetch(`${API_BASE}/api/favorites/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

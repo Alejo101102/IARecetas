@@ -4,6 +4,8 @@ import { auth } from "../../firebase";
 import { getProductos as getProductosFromStore } from "../store/inventarioStore.js";
 import "./Recetas.css";
 
+const API_BASE = globalThis.__VITE_API_URL__ || "http://localhost:5000";
+
 // ─── Receta quemada de prueba ───────────────────────────────
 const RECETA_DEMO = {
   id: "demo-1",
@@ -696,7 +698,7 @@ export default function Recetas() {
       console.log("Enviando solicitud al backend:", payload);
 
       const response = await fetch(
-        "http://localhost:5000/api/recipes/generate",
+        `${API_BASE}/api/recipes/generate`,
         {
           method: "POST",
           headers: {
@@ -763,7 +765,7 @@ export default function Recetas() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/favorites/add", {
+      const response = await fetch(`${API_BASE}/api/favorites/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
